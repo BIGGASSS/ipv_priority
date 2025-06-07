@@ -33,22 +33,23 @@ function test_resolution() {
     fi
 
     echo "    -> 尝试 ping（自动选择）..."
-    if ping -c 1 -W 1 www.google.com | grep -q "bytes from"; then
-        proto=$(ping -c 1 -W 1 www.google.com 2>/dev/null | head -n1)
-        if echo "$proto" | grep -q "\("; then
-            ip=$(echo "$proto" | sed -n 's/.*(\(.*\)).*/\1/p')
-            if echo "$ip" | grep -q ":"; then
-                echo "       自动选择结果：IPv6"
-            else
-                echo "       自动选择结果：IPv4"
-            fi
+    PING_OUTPUT=$(ping -c 1 -W 1 www.google.com 2>/dev/null | head -n1)
+    
+    if echo "$PING_OUTPUT" | grep -q "bytes from"; then
+        IP=$(echo "$PING_OUTPUT" | sed -n 's/.*(\(.*\)).*/\1/p')
+        
+        if [[ "$IP" == *:* ]]; then
+            echo "       自动选择结果：IPv6"
+        elif [[ "$IP" == *.* ]]; then
+            echo "       自动选择结果：IPv4"
         else
-            echo "       无法判断协议"
+            echo "       无法判断 IP 类型"
         fi
     else
         echo "       ping 失败，无法检测"
     fi
 }
+
 
 function set_ipv4_priority() {
     echo "[*] 切换为 IPv4 优先..."
