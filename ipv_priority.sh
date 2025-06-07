@@ -17,7 +17,7 @@ function check_priority() {
 
 function test_resolution() {
     echo "[*] 使用 ping 测试 www.google.com 首选协议："
-    
+
     echo "    -> 尝试 ping -6（IPv6）..."
     if ping -6 -c 1 -W 1 www.google.com &>/dev/null; then
         echo "       IPv6 可达"
@@ -33,20 +33,19 @@ function test_resolution() {
     fi
 
     echo "    -> 尝试 ping（自动选择）..."
-    PING_OUTPUT=$(ping -c 1 -W 1 www.google.com 2>/dev/null | head -n1)
-    
-    if echo "$PING_OUTPUT" | grep -q "bytes from"; then
+    PING_OUTPUT=$(ping -c 1 -W 1 www.google.com 2>&1)
+    if echo "$PING_OUTPUT" | grep -q "PING" && echo "$PING_OUTPUT" | grep -q "("; then
         IP=$(echo "$PING_OUTPUT" | sed -n 's/.*(\(.*\)).*/\1/p')
-        
         if [[ "$IP" == *:* ]]; then
-            echo "       自动选择结果：IPv6"
+            echo "       自动选择结果：IPv6（$IP）"
         elif [[ "$IP" == *.* ]]; then
-            echo "       自动选择结果：IPv4"
+            echo "       自动选择结果：IPv4（$IP）"
         else
-            echo "       无法判断 IP 类型"
+            echo "       无法识别协议，解析结果：$IP"
         fi
     else
-        echo "       ping 失败，无法检测"
+        echo "       ping 命令执行失败："
+        echo "$PING_OUTPUT" | head -n 1
     fi
 }
 
