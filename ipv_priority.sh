@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 文件路径
+# gai.conf 路径
 GAI_CONF="/etc/gai.conf"
 BACKUP_CONF="/etc/gai.conf.bak"
 
@@ -16,8 +16,38 @@ function check_priority() {
 }
 
 function test_resolution() {
-    echo "[*] 检测 getaddrinfo 返回顺序（getent hosts www.google.com）："
-    getent hosts www.google.com | head -n 5
+    echo "[*] 使用 ping 测试 www.google.com 首选协议："
+    
+    echo "    -> 尝试 ping -6（IPv6）..."
+    if ping -6 -c 1 -W 1 www.google.com &>/dev/null; then
+        echo "       IPv6 可达"
+    else
+        echo "       IPv6 不可达或被屏蔽"
+    fi
+
+    echo "    -> 尝试 ping -4（IPv4）..."
+    if ping -4 -c 1 -W 1 www.google.com &>/dev/null; then
+        echo "       IPv4 可达"
+    else
+        echo "       IPv4 不可达或被屏蔽"
+    fi
+
+    echo "    -> 尝试 ping（自动选择）..."
+    if ping -c 1 -W 1 www.google.com | grep -q "bytes from"; then
+        proto=$(ping -c 1 -W 1 www.google.com 2>/dev/null | head -n1)
+        if echo "$proto" | grep -q "\("; then
+            ip=$(echo "$proto" | sed -n 's/.*(\(.*\)).*/\1/p')
+            if echo "$ip" | grep -q ":"; then
+                echo "       自动选择结果：IPv6"
+            else
+                echo "       自动选择结果：IPv4"
+            fi
+        else
+            echo "       无法判断协议"
+        fi
+    else
+        echo "       ping 失败，无法检测"
+    fi
 }
 
 function set_ipv4_priority() {
@@ -45,10 +75,9 @@ function usage() {
     echo "  check   显示当前优先级配置"
     echo "  ipv4    设置为 IPv4 优先"
     echo "  ipv6    设置为 IPv6 优先"
-    echo "  test    测试当前解析优先级"
+    echo "  test    使用 ping 测试当前解析优先级"
 }
 
-# 主流程
 case "$1" in
     check)
         check_priority
